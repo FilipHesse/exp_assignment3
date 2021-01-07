@@ -1,0 +1,3 @@
+[submodule "catkin_ws/src/exp_assignment3_pkg"]
+	path = catkin_ws/src/exp_assignment3_pkg
+	url = https://github.com/FilipHesse/exp_assignment3_pkg.git
