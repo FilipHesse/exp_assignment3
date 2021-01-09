@@ -1,3 +1,7 @@
 [submodule "catkin_ws/src/exp_assignment3_pkg"]
 	path = catkin_ws/src/exp_assignment3_pkg
 	url = https://github.com/FilipHesse/exp_assignment3_pkg.git
+[submodule "catkin_ws/src/explore_lite"]
+	path = catkin_ws/src/explore_lite
+	url = https://github.com/FilipHesse/m-explore.git
+	branch = noetic-devel
