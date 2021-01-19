@@ -303,11 +303,6 @@ The above state diagram shows clearly the four main states of the system:
     * The explore_lite package is used for exploring the environment, although we are not using the original package, but the author created a fork of the original one and added some functionality to the source code: The node can be started and stopped by calling the two services: /explore/start, /explore/stop 
   * FIND_TRACK: The robot sees a new ball, that it has not seen before. It approaches that ball and saves its position. This state is leterally the same state as the NORMAL_TRACK state. It will just switch back to TRACK_DEFAULT instead of NORMAL_DEFAULT
 
-Here two screenshots of RVIZ at the beginning of the simulation and at the end:
-
-<img src="./images/Screenshot_begin.png" alt="begin" height="300"/>
-<img src="./images/Screenshot_end.png" alt="end" height="300"/>
-
 ## Packages and file list
  The main package of this project is exp_assignment3_pkg. However, the modified explore_lite was used, so the source code of this package is also contained in this project. Note, that both packages were included as submodules, so pay attention to include the `--recurse-submodules` flag when cloning this repository.
 
@@ -441,6 +436,11 @@ rostopic echo /what_is_going_on
 
 You will be able to observe the robot moving end exploring in RVIZ. While watching RVIZ always keep an eye on the /what_is_going_on topic to see incoming commands, the commands, that are processed, the states of the state machine, the countdown to go to sleep/ wake up etc.
 
+Here two screenshots of RVIZ at the beginning of the simulation and at the end:
+
+<img src="./images/Screenshot_begin.png" alt="begin" width="500"/>
+<img src="./images/Screenshot_end.png" alt="end" width="500"/>
+
 
 ## Working hypothesis and environment
 The environment is defined by the gazebo world `house2_with_gazebo.world`:
@@ -491,16 +491,16 @@ Filip Hesse - S4889393(at)studenti.unige.it
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/FilipHesse/experimental_robotics_lab1.svg?style=flat-square
-[contributors-url]: https://github.com/FilipHesse/experimental_robotics_lab1/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/FilipHesse/experimental_robotics_lab1.svg?style=flat-square
-[forks-url]: https://github.com/FilipHesse/experimental_robotics_lab1/network/members
-[stars-shield]: https://img.shields.io/github/stars/FilipHesse/experimental_robotics_lab1.svg?style=flat-square
-[stars-url]: https://github.com/FilipHesse/experimental_robotics_lab1/stargazers
-[issues-shield]: https://img.shields.io/github/issues/FilipHesse/experimental_robotics_lab1.svg?style=flat-square
-[issues-url]: https://github.com/FilipHesse/experimental_robotics_lab1/issues
-[license-shield]: https://img.shields.io/github/license/FilipHesse/experimental_robotics_lab1.svg?style=flat-square
-[license-url]: https://github.com/FilipHesse/experimental_robotics_lab1/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/FilipHesse/exp_assignment3.svg?style=flat-square
+[contributors-url]: https://github.com/FilipHesse/exp_assignment3/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/FilipHesse/exp_assignment3.svg?style=flat-square
+[forks-url]: https://github.com/FilipHesse/exp_assignment3/network/members
+[stars-shield]: https://img.shields.io/github/stars/FilipHesse/exp_assignment3.svg?style=flat-square
+[stars-url]: https://github.com/FilipHesse/exp_assignment3/stargazers
+[issues-shield]: https://img.shields.io/github/issues/FilipHesse/exp_assignment3.svg?style=flat-square
+[issues-url]: https://github.com/FilipHesse/exp_assignment3/issues
+[license-shield]: https://img.shields.io/github/license/FilipHesse/exp_assignment3.svg?style=flat-square
+[license-url]: https://github.com/FilipHesse/exp_assignment3/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/FilipHesse
 [product-screenshot]: images/screenshot.png
