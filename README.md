@@ -267,69 +267,121 @@ One note about the entrys last_command and command_processing: The ui sends a lo
 
 The following <strong>ROS-service</strong> has been defined:
 
-* PetCommand.srv: A string command ("play", "go_to") can be sent. If the command is "go_to", then a targetpoint should be specified. If the command is "play", the point is ignored.
+* PetCommand.srv: A string command ("play", "go_to") can be sent. If the command is "go_to", then a string for the target room should be specified. Possible rooms are entrance, closet, living_room, kitchen, bathroom, bedroom.
 ```sh
 Header header
 string command 
-robot_pet/Point2d point
+string room
 ---
 ```
 The following <strong>ROS-action</strong> has been defined:
 
-* SetTargetPositionAction: This action is used to set a target position of the robot. The caller pecifies a target, which is a Point2d (see above). When the position is reached, the action server confirms the final position by sending back the target point.
-```sh
-#Goal
-robot_pet/Point2d target
----
-#Result
-robot_pet/Point2d final_position
----
-#Feedback
-```
+* EmptyAction: This action is used to tell the ball follower to follow (track) a ball. The goal, result and feedback part are completely empty. We just need the basic functions of an action server (e.g. the possibility to cancel) without passing information between the nodes.
+
 
 ### State Machine
-![State Diagram](./docs/diagrams/EXP_ASS1_UML_State_diagram.jpg)
-The above state diagram shows clearly the three states of the system:
-* NORMAL: The robot moves randomly from one position to another. It can transition to the PLAY state by receiving a user command to play. If the sleeping timer triggers sleeping time, then the state transitions to SLEEP.
-* SLEEP: The robot approaches the house and stays there, until the sleeping timer triggers, that it's time to wake up (transition "slept_enough"). Then the robot returns to the state NORMAL
-* PLAY: The robot performs the following actions in a loop:
-  1) Go to user
-  2) Wait for a command that specifies a new target
-  3) Go to new target
-  4) Repeat
-  * When a random number of games has been reached, the robot stops playing ("played_enough") and returns to the normal state. When the sleeping timer triggers time to sleep, the state transitions to SLEEP.
+![State Diagram](images/EXP_ASS3_State_diagram.jpg)
+
+The above state diagram shows clearly the four main states of the system:
+* NORMAL: 
+  * NORMAL_DEFAULT: 
+    * The robot moves around randomly within the known map. 
+    * The target points for the move_base node are random points within the map dimensions. This node checks, if the goal point has a cost of 0 in the global cost map (free, explored space). If that is not the case, another random goal is created, until it lands is the free space of the costmap.
+    * Once a goal has been reached by move base (action terminated successfully), a new goal is sent
+  * NORMAL_TRACK: 
+    * The robot sees a new ball, that it has not seen before. It approaches that ball and saves its position. 
+    * This substate simply sets an empty goal the action /follow_ball/goal and waits until the action is finshed successfully. In this substate, the robot does not listen for commands like play, but it finshes tracking first. This makes sense, because while tracking a ball, the area will be mapped with the laser scanner. Consequently the area will not be unknown anymore, so in the FIND-state the robot will not navigate into this area anymore. This is why we have to finish tracking once we have started it.
+* PLAY: 
+  * The robot approaches the person and waits for a "go to" command (e.g go_to kitchen). If the given room is known, the robot goes to that position and comes back to the user. If it is unknown, it switches to the state FIND to find that room.
+  * The information, if a room is known or unknown (including its position and ball color) is stored in a global variable: `room_info.info` (it can be found in the file exp_assignment3_pkg/scripts/room_info.py) 
+  * If the input key `init_games` was set to True, a random number of games between 2 and 4 is chosen. When these games were played, the robot goes back to NORMAL state.
+* SLEEP: 
+  * The robot returns to the position of a house and sleeps for some time, then it wakes up and returns to normal
+* FIND:
+  * FIND_DEFAULT: 
+    * The robot explores the area with a frontier based approach. 
+    * The explore_lite package is used for exploring the environment, although we are not using the original package, but the author created a fork of the original one and added some functionality to the source code: The node can be started and stopped by calling the two services: /explore/start, /explore/stop 
+  * FIND_TRACK: The robot sees a new ball, that it has not seen before. It approaches that ball and saves its position. This state is leterally the same state as the NORMAL_TRACK state. It will just switch back to TRACK_DEFAULT instead of NORMAL_DEFAULT
+
+Here two screenshots of RVIZ at the beginning of the simulation and at the end:
+
+<img src="./images/Screenshot_begin.png" alt="begin" height="300"/>
+<img src="./images/Screenshot_end.png" alt="end" height="300"/>
 
 ## Packages and file list
- The only package in the project, which should be used it the package <strong>robot_pet</strong>. The other packages were all introduced to make the smach_viewer run, which was not successful yet. The smach_viewer is written in python2 while ROS noetic only supports python3. The additional packages still remain inside this repository for the case a solution will be found to make the smach_viewer run.
+ The main package of this project is exp_assignment3_pkg. However, the modified explore_lite was used, so the source code of this package is also contained in this project. Note, that both packages were included as submodules, so pay attention to include the `--recurse-submodules` flag when cloning this repository.
 
- The following file tree shows the contents of the robot_pet package. It is located as usual inside catkin_ws/src/:
+ The following file tree shows the contents of the catkin_ws/src directory:
 
 ```sh
-robot_pet/
-├── action
-│   └── SetTargetPosition.action
-├── CMakeLists.txt
-├── launch
-│   ├── params.launch
-│   └── run_system.launch
-├── msg
-│   ├── Point2d.msg
-│   └── Point2dOnOff.msg
-├── package.xml
-├── scripts
-│   ├── behavior_state_machine.py
-│   ├── images
-│   │   ├── house.jpg
-│   │   ├── pet.jpg
-│   │   ├── pointer.jpg
-│   │   └── user.jpg
-│   ├── localizer_navigator.py
-│   ├── map.py
-│   ├── ui.py
-│   └── user_localizer.py
-└── srv
-    ├── GetPosition.srv
-    └── PetCommand.srv
+.
+├── CMakeLists.txt -> /opt/ros/noetic/share/catkin/cmake/toplevel.cmake
+├── exp_assignment3_pkg
+│   ├── action
+│   │   └── Empty.action
+│   ├── CMakeLists.txt
+│   ├── config
+│   │   ├── base_planner_params.yaml
+│   │   ├── costmap_common_params.yaml
+│   │   ├── global_costmap_params.yaml
+│   │   ├── gmapping_params.yaml
+│   │   ├── local_costmap_params.yaml
+│   │   ├── motors_config.yaml
+│   │   └── rviz_config.rviz
+│   ├── launch
+│   │   ├── gmapping.launch
+│   │   ├── launch_world.launch
+│   │   ├── move_base.launch
+│   │   ├── simulation.launch
+│   │   ├── simulation_manual_ui.launch
+│   │   └── spawn_robot.launch
+│   ├── msg
+│   │   ├── BallCenterRadius.msg
+│   │   ├── BallVisible.msg
+│   │   └── WhatIsGoingOn.msg
+│   ├── package.xml
+│   ├── scripts
+│   │   ├── ball_follower.py
+│   │   ├── behavior_state_machine.py
+│   │   ├── image_processor.py
+│   │   ├── room_info.py
+│   │   ├── states.py
+│   │   └── ui.py
+│   ├── srv
+│   │   └── PetCommand.srv
+│   ├── urdf
+│   │   ├── human.urdf
+│   │   ├── robot.gazebo
+│   │   └── robot.xacro
+│   └── worlds
+│       ├── gazebo
+│       │   ├── model.config
+│       │   └── model.sdf
+│       ├── house2_with_gazebo.world
+│       └── house2.world
+└── explore_lite
+    ├── CHANGELOG.rst
+    ├── CMakeLists.txt
+    ├── doc
+    │   ├── architecture.dia
+    │   ├── screenshot.png
+    │   └── wiki_doc.txt
+    ├── include
+    │   └── explore
+    │       ├── costmap_client.h
+    │       ├── costmap_tools.h
+    │       ├── explore.h
+    │       └── frontier_search.h
+    ├── launch
+    │   ├── explore_costmap.launch
+    │   └── explore.launch
+    ├── LICENSE
+    ├── package.xml
+    ├── README.md
+    └── src
+        ├── costmap_client.cpp
+        ├── explore.cpp
+        └── frontier_search.cpp
 ```
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -340,11 +392,17 @@ To get a local copy up and running follow these simple steps.
 
 This package was developed on Ubuntu 20.04, using [ROS noetic](http://wiki.ros.org/noetic/Installation) and [Python3](https://www.python.org/downloads/) (Click on ROS or python for installation instructions)
 
+Further required packages are opencv, gmapping and the DWAlocal planner. You can install them using these three commands:
+```sh
+sudo apt install python3-opencv
+sudo apt-get install ros-noetic-gmapping
+sudo apt-get install ros-noetic-dwa-local-planner
+```
 ### Installation
 
-1. Clone the repo
+1. Clone the repo with the __--recurse-submodules Flag__
 ```sh
-git clone https://github.com/FilipHesse/experimental_robotics_lab1.git
+git clone --recurse-submodules https://github.com/FilipHesse/exp_assignment3
 ```
 
 <!-- USAGE EXAMPLES -->
@@ -355,52 +413,63 @@ To run the project, perform the following steps (from catkin_ws):
 ```sh
 source /opt/ros/noetic/setup.bash
 ```
-2) catkin_make the project, so all message files will be created
+2) Navigate to catkin_ws
+```sh
+cd exp_assignment3/catkin_ws
+```
+3) catkin_make the project, so all message files will be created
 ```sh
 catkin_make
 ```
-3) Type
+4) Type
 ```sh
 source devel/setup.bash
 ```
-4) Run the launchfile:
+5) Run the launchfile:
 ```
-roslaunch robot_pet run_system.launch 
+roslaunch exp_assignment3_pkg simulation.launch 
 ``` 
+  or if you want to type commands manually (to have more control):
+```
+roslaunch exp_assignment3_pkg simulation_manual_ui.launch 
+``` 
+6) To understand, what the state machine is doing, you should echo the ROS topic /what_is_going_on:
+```
+rostopic echo /what_is_going_on
+``` 
+7) Sit back and enjoy the show!
 
-All nodes will startup. One screen will show the output of the map.
-rqt_console is also starting up. To understand the robots behavior, it is best to focus on the loginfo messages, that come from the node behavior_state_machine. To do so start the flow of messages and sort the messages according to "Node". Then scroll to the messages, that come from behavior_state_machine. The user can see logs about incoming commands, called actions, state transitions and more. This behavior can simultaniously be compared to the rqt_image_viewer.
-
-Unfortunately the smach_viewer can not be used due to compatibility issues with python3.
+You will be able to observe the robot moving end exploring in RVIZ. While watching RVIZ always keep an eye on the /what_is_going_on topic to see incoming commands, the commands, that are processed, the states of the state machine, the countdown to go to sleep/ wake up etc.
 
 
 ## Working hypothesis and environment
-The pet is moving in a two dimensional integer domain. The map is just a rectangle, whose size is configured in the ROS parameter server. 
-There are no obstacles and no collisions defined, so two objects can have the same position.
-The robot will reveive commands even when the robot is moving and process them if they are valid.
+The environment is defined by the gazebo world `house2_with_gazebo.world`:
+<img src="./images/World.png" alt="Wobot" width="500"/>
+
+The world is composed of 6 rooms, that have a colored ball inside of them. Each ball has a different color. Each color is mapped to a specific room name (e.g. blue ball: kitchen). The world is completely unknown to the robot at the beginning of program execution.
+
+The world is completely static, so there are no moving or variable obstacles. The balls have a uniform color, which can not be found anywhere else in the entire environment. This ensures the correct ball detection.
 
 ## Systems features
-The user is not constrained to give commands in a specific order. This is why the user in this implementation gives commands completely independent of the state machines state. A real world user could also say "go_to" while the robot is in the normal mode and the robot should not crash because of that invalid command.
-If an invalid command comes in, this is detected and a loginfo message is created: "Invalid command 'go_to' for state NORMAL. First say 'play' and then give go_to commands!"
-
-Setting a new target to the localizer_navigator node is implemented as an action. This prevents the blocking behavior of a service. The state machine is not freezed until the next target is reached. Consequently, the user can give commands any time, the state machine decides when and how to process them.
-For example: If the robot hears 'play' in the NORMAL state: Even if the robot is moving at the time of the command, it is received and the state machine waits until the current target is reached and then switches to the state PLAY. So in that state, the robot does not need to stop in order to listen for commands.
-The implementation of an action adds a lot of flexibility to the software and keeps it extendable: One could for example use action preemptions (see possible improvements)
+* autonomous navigation of a robot in an ideal indoor environment
+* building a map autonomously with frontier bases exploration and SLAM 
+* Reliable detection of colored balls in a controlled environment
+* Perform visual servoing to approach a target detected by the camera
+* Visualization of the map, and costmap in RVIZ including the colored balls, that have been found, as colored markers
+* Comprehensive debugging tools like the /what_is_going_on topic
+* A test of 4 hours was performed without any deadlock or major problems => the system is quite stable
 
 ## Systems limitations
-The user is moving around at a constant rate. This means, even if the pet is aproaching it, the user might move away in the meantime (not far). So in most cases the pet ends up somewhere close to the user, but not at the exact position.
 
-The state PLAY has some limitations:
-The state machine only checks if its time to sleep AFTER a game (go to marker once and come back) has been finished. So sometimes the pet goes sleeping a couple of seconds after the sleeping timer has triggered.
-When playing the game and the pet goes to the user, it aims to go exactly to the users position. If the person did not move in the meantime, the pet ends up INSIDE of the user, insted in front of it.
+Very rarely the robot gets stuck in a corner or very close to the wall. This happens, if for some reason the local planner aproached the wall too much and navigated into a corner. Then, no local path can be found to get out of that situation, sometimes even the recovery mechanisms fail. As a workaround, the user can grad the robot in gazebo and move it a bit away from the wall.
 
-The UI is very simplistic and may have undetected weaknesses or bugs. Generally it still fullfills the purpose to visualize what is going on is a vey simple way.
-
+When the robot is in the TRACK state, pure visual servoing is performed. It is naively assumed, that there is no obstacle in the way if we can see the target. Due to the fact, that the robot has a certain width, it can happen, that the robot crashes into an obstacle while approaching a colored ball. A crash while tracking might lead to following problems: The target might get lost from the camera view and the state machine switches back to its previous state (NORMAL or FIND). The problem is, that the laser scanner probably mapped the area without the ball being reached and saved. Thus, in the find mode, the robot will not search for that ball in this area anymore, as it is assumed to be explored. The robot might end up not moving at all, if the entire area is explored but one ball is still not found. Nevertheless, the programm will not be in a complete deadlock. When its time to sleep, the robot will continue moving and afterwards the NORMAL/PLAY behaviors will continue to work. By chance the robot could still find the lost ball in NORMAL mode.
 ## Possible technical improvements
-The state PLAY could be improved: 
-The state machine could check more frequently (when going to target, while coming back) if it is time to sleep. Moving actions could then be preempted and the state could be changed immediately. Navigation could also be implemented properly, so that robot stops at an intermediate position, when the "go to target" action is preempted
+The local planner could probably be improved. Either, a completely different local planner chould be chosen or some parameters of the present local planner could be changed. The DWA local planner definitely has one major drawback: It will not simply rotate inplace to change its heading and then continue its path. It always tries to find a trajectory composed of a linear and angular velocity. This occasionally leads to circular trajectories, so that the robot moves in circles multiple times.
 
-The project could then be extended im multiple ways, e.g. by implementing obstacles and collisions. For this case it might be usefull tu use simulator tools, such as Stage. 
+The ball follower could be improved to not simply publish cmd_vel messages, but goals to move_base when trying to approach a ball. The goals could be located just at some distance right in front of the robot. This way, the local planner would try to avoid obstacles.
+
+Furthermore, the FIND state could be extended toperform random movements, if the entire map is explored but not all balls were found. However this is just necessary in case of previous bugs. The laser scanner has the same field of view as the camera, so anything that the laser scanner maps should also be seen by the camera.
 
 <!-- LICENSE -->
 ## License
@@ -409,7 +478,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 
 
-Project Link: [https://github.com/FilipHesse/experimental_robotics_lab1](https://github.com/FilipHesse/experimental_robotics_lab1)
+Project Link: [https://github.com/FilipHesse/exp_assignment3](https://github.com/FilipHesse/exp_assignment3)
 
 
 
