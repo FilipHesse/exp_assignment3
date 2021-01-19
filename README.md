@@ -436,7 +436,7 @@ rostopic echo /what_is_going_on
 
 You will be able to observe the robot moving end exploring in RVIZ. While watching RVIZ always keep an eye on the /what_is_going_on topic to see incoming commands, the commands, that are processed, the states of the state machine, the countdown to go to sleep/ wake up etc.
 
-Here two screenshots of RVIZ at the beginning of the simulation and at the end:
+Here are two screenshots of RVIZ at the beginning of the simulation and at the end:
 
 <img src="./images/Screenshot_begin.png" alt="begin" width="500"/>
 <img src="./images/Screenshot_end.png" alt="end" width="500"/>
